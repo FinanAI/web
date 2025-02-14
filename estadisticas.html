@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas - FinanzApp</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+</head>
+<body>
+  <nav>
+    <h1>FinanzApp</h1>
+    <div class="menu-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <ul class="menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="transacciones.html">Transacciones</a></li>
+      <li><a href="objetivos.html">Objetivos</a></li>
+      <li><a href="estadisticas.html" class="active">Estadísticas</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <h2>Análisis Financiero</h2>
+    <div class="stats-grid">
+      <div class="card">
+        <h3>Tendencia de Gastos</h3>
+        <canvas id="expensesTrendChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Distribución por Necesidad</h3>
+        <canvas id="needsDistributionChart"></canvas>
+      </div>
+      <div class="card analysis">
+        <h3>Análisis de Comportamiento</h3>
+        <div id="behaviorAnalysis"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Handle menu toggle for mobile
+    document.querySelector('.menu-toggle').addEventListener('click', () => {
+      document.querySelector('.menu').classList.toggle('active');
+    });
+  </script>
+  <script type="module">
+    import { initializeCharts } from './js/charts.js';
+    import { analyzeFinancialBehavior } from './js/analysis.js';
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeCharts();
+      analyzeFinancialBehavior();
+    });
+  </script>
+</body>
+</html>

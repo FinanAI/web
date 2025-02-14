@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Objetivos - FinanzApp</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+</head>
+<body>
+  <nav>
+    <h1>FinanzApp</h1>
+    <div class="menu-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <ul class="menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="transacciones.html">Transacciones</a></li>
+      <li><a href="objetivos.html" class="active">Objetivos</a></li>
+      <li><a href="estadisticas.html">Estadísticas</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <h2>Objetivos Financieros</h2>
+    <div class="goals-grid">
+      <div class="add-goal-card">
+        <button onclick="showGoalModal()">+ Nuevo Objetivo</button>
+      </div>
+      <div id="goalsList"></div>
+    </div>
+  </div>
+
+  <!-- Modal de objetivo -->
+  <div id="goalModal" class="modal">
+    <div class="modal-content">
+      <h2>Nuevo Objetivo</h2>
+      <form id="goalForm">
+        <input type="text" id="goalName" placeholder="Nombre del objetivo" required>
+        <input type="number" id="goalAmount" placeholder="Monto objetivo" required>
+        <input type="date" id="goalDate" required>
+        <div class="modal-actions">
+          <button type="submit">Guardar</button>
+          <button type="button" onclick="closeModal('goalModal')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Transaction Modal for Goal Contributions -->
+  <div id="transactionModal" class="modal">
+    <div class="modal-content">
+      <h2>Contribuir al Objetivo</h2>
+      <form id="transactionForm">
+        <input type="number" id="amount" placeholder="Monto" required>
+        <input type="text" id="description" placeholder="Descripción" required>
+        <select id="category" required>
+          <option value="savings">Ahorro</option>
+        </select>
+        <input type="hidden" id="goalContribution">
+        <div class="modal-actions">
+          <button type="submit">Guardar</button>
+          <button type="button" onclick="closeModal('transactionModal')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+  <script>
+    function showGoalModal() {
+      document.getElementById('goalModal').style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Handle menu toggle for mobile
+    document.querySelector('.menu-toggle').addEventListener('click', () => {
+      document.querySelector('.menu').classList.toggle('active');
+    });
+  </script>
+  <script type="module">
+    import { showNotification } from './js/notifications.js';
+    import { analyzeFinancialBehavior } from './js/analysis.js';
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      updateGoalsList();
+      setupGoalsEventListeners();
+    });
+
+    function setupGoalsEventListeners() {
+      document.getElementById('goalForm').addEventListener('submit', handleGoalSubmit);
+      document.getElementById('transactionForm').addEventListener('submit', handleContribution);
+    }
+
+    function handleGoalSubmit(e) {
+      e.preventDefault();
+
+      const goal = {
+        id: Date.now(),
+        name: document.getElementById('goalName').value,
+        amount: parseFloat(document.getElementById('goalAmount').value),
+        date: document.getElementById('goalDate').value,
+        currentAmount: 0,
+        completed: false,
+        overdueNotified: false
+      };
+
+      const goals = JSON.parse(localStorage.getItem('goals')) || [];
+      goals.push(goal);
+      localStorage.setItem('goals', JSON.stringify(goals));
+
+      showNotification(
+        'Nuevo objetivo financiero',
+        `${goal.name} - $${goal.amount}`,
+        'success'
+      );
+
+      updateGoalsList();
+      closeModal('goalModal');
+      e.target.reset();
+    }
+
+    let currentGoal = null;
+
+    window.contributeToGoal = function(goalId) {
+      const goals = JSON.parse(localStorage.getItem('goals')) || [];
+      currentGoal = goals.find(g => g.id === goalId);
+      if (currentGoal) {
+        const transactionModal = document.getElementById('transactionModal');
+        document.getElementById('description').value = `Contribución a: ${currentGoal.name}`;
+        document.getElementById('goalContribution').value = goalId;
+        transactionModal.style.display = 'block';
+      }
+    };
+
+    function handleContribution(e) {
+      e.preventDefault();
+      
+      const amount = parseFloat(document.getElementById('amount').value);
+      const description = document.getElementById('description').value;
+      const goalId = document.getElementById('goalContribution').value;
+
+      const transaction = {
+        id: Date.now(),
+        type: 'expense',
+        amount: -amount, // Negative because it's an expense/contribution
+        description,
+        category: 'savings',
+        necessity: 'medium',
+        date: new Date().toISOString(),
+        goalContribution: parseInt(goalId)
+      };
+
+      const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+      transactions.push(transaction);
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+
+      showNotification(
+        'Contribución realizada',
+        `$${amount} - ${description}`,
+        'success'
+      );
+
+      updateGoalsList();
+      closeModal('transactionModal');
+      e.target.reset();
+    }
+
+    function updateGoalsList() {
+      const goals = JSON.parse(localStorage.getItem('goals')) || [];
+      const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+      const list = document.getElementById('goalsList');
+      
+      list.innerHTML = '';
+
+      goals.forEach(goal => {
+        const goalTransactions = transactions.filter(t => t.goalContribution === goal.id);
+        const currentAmount = goalTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const progress = (currentAmount / goal.amount) * 100;
+        const deadline = new Date(goal.date);
+        const now = new Date();
+        const isOverdue = now > deadline && progress < 100;
+        const isCompleted = progress >= 100;
+
+        if (isCompleted && !goal.completed) {
+          goal.completed = true;
+          localStorage.setItem('goals', JSON.stringify(goals));
+        }
+
+        const card = document.createElement('div');
+        card.className = 'goal-card';
+        card.innerHTML = `
+          <h3>${goal.name}</h3>
+          <p>Objetivo: $${goal.amount.toFixed(2)}</p>
+          <p>Ahorrado: $${currentAmount.toFixed(2)}</p>
+          <p>Fecha límite: ${new Date(goal.date).toLocaleDateString()}</p>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
+          </div>
+          <p>${progress.toFixed(1)}% completado</p>
+          ${isCompleted ? 
+            `<p class="completed-tag">¡Objetivo Completado!</p>` :
+            isOverdue ?
+            `<div class="overdue-tag">
+              <p>Meta fuera de plazo</p>
+              <p class="motivation">¡Sigue adelante! Cada esfuerzo cuenta.</p>
+             </div>
+             <button onclick="contributeToGoal(${goal.id})" class="contribute-btn">Continuar contribuyendo</button>` :
+            `<button onclick="contributeToGoal(${goal.id})" class="contribute-btn">Contribuir</button>`
+          }
+        `;
+        list.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>

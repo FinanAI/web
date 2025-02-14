@@ -1,0 +1,248 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - FinanzApp</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+</head>
+<body>
+  <nav>
+    <h1>FinanzApp</h1>
+    <div class="menu-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <ul class="menu">
+      <li><a href="index.html" class="active">Dashboard</a></li>
+      <li><a href="transacciones.html">Transacciones</a></li>
+      <li><a href="objetivos.html">Objetivos</a></li>
+      <li><a href="estadisticas.html">Estadísticas</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="dashboard-grid">
+      <div class="card balance">
+        <h2>Balance Total</h2>
+        <p class="amount">$<span id="totalBalance">0.00</span></p>
+        <div class="actions">
+          <button id="incomeBtn">+ Ingreso</button>
+          <button id="expenseBtn">- Gasto</button>
+        </div>
+      </div>
+
+      <div class="card chart">
+        <h2>Resumen Mensual</h2>
+        <canvas id="monthlyChart"></canvas>
+      </div>
+
+      <div class="card recommendations">
+        <h2>Recomendaciones</h2>
+        <div id="recommendationsList"></div>
+      </div>
+
+      <div class="card alerts">
+        <h2>Alertas</h2>
+        <div id="alertsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de transacción -->
+  <div id="transactionModal" class="modal">
+    <div class="modal-content">
+      <h2>Nueva Transacción</h2>
+      <form id="transactionForm">
+        <input type="number" id="amount" placeholder="Monto" required>
+        <input type="text" id="description" placeholder="Descripción" required>
+        <select id="category" required>
+          <option value="">Seleccionar categoría</option>
+          <optgroup label="Gastos Esenciales">
+            <option value="food">Alimentación</option>
+            <option value="bills">Servicios</option>
+            <option value="health">Salud</option>
+            <option value="housing">Vivienda</option>
+            <option value="education">Educación</option>
+          </optgroup>
+          <optgroup label="Gastos Importantes">
+            <option value="transport">Transporte</option>
+            <option value="clothing">Ropa</option>
+            <option value="insurance">Seguros</option>
+            <option value="maintenance">Mantenimiento</option>
+          </optgroup>
+          <optgroup label="Gastos No Esenciales">
+            <option value="entertainment">Entretenimiento</option>
+            <option value="hobbies">Pasatiempos</option>
+            <option value="dining">Restaurantes</option>
+            <option value="shopping">Compras</option>
+            <option value="travel">Viajes</option>
+          </optgroup>
+          <optgroup label="Ingresos">
+            <option value="salary">Salario</option>
+            <option value="other">Otros</option>
+          </optgroup>
+          <optgroup label="Ahorro">
+            <option value="savings">Ahorro</option>
+          </optgroup>
+        </select>
+        <select id="goalContribution">
+          <option value="none">Ninguna meta</option>
+        </select>
+        <div class="modal-actions">
+          <button type="submit">Guardar</button>
+          <button type="button" onclick="closeModal('transactionModal')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <button id="voiceInputBtn" onclick="toggleVoiceInput()" title="Entrada por voz">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/>
+      <path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+    </svg>
+  </button>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Handle menu toggle for mobile
+    document.querySelector('.menu-toggle').addEventListener('click', () => {
+      document.querySelector('.menu').classList.toggle('active');
+    });
+  </script>
+  <script type="module">
+    import { initializeApp } from './js/app.js';
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeApp();
+      
+      // Set up income/expense button event listeners
+      const incomeBtn = document.getElementById('incomeBtn');
+      const expenseBtn = document.getElementById('expenseBtn');
+      
+      if (incomeBtn) {
+        incomeBtn.addEventListener('click', () => {
+          const modal = document.getElementById('transactionModal');
+          if (modal) {
+            modal.style.display = 'block';
+            document.querySelector('#transactionModal h2').textContent = 'Nuevo Ingreso';
+            // Update type for form submission
+            window.currentTransactionType = 'income';
+          }
+        });
+      }
+      
+      if (expenseBtn) {
+        expenseBtn.addEventListener('click', () => {
+          const modal = document.getElementById('transactionModal');
+          if (modal) {
+            modal.style.display = 'block';
+            document.querySelector('#transactionModal h2').textContent = 'Nuevo Gasto';
+            // Update type for form submission
+            window.currentTransactionType = 'expense';
+          }
+        });
+      }
+
+      // Set up transaction form event listener
+      const transactionForm = document.getElementById('transactionForm');
+      if (transactionForm) {
+        transactionForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          
+          const amount = parseFloat(document.getElementById('amount').value);
+          const description = document.getElementById('description').value;
+          const category = document.getElementById('category').value;
+          const goalId = document.getElementById('goalContribution').value;
+          
+          const transaction = {
+            id: Date.now(),
+            type: window.currentTransactionType,
+            amount: window.currentTransactionType === 'income' ? amount : -amount,
+            description,
+            category,
+            necessity: getNecessityLevel(category),
+            date: new Date().toISOString(),
+            goalContribution: goalId && goalId !== 'none' ? parseInt(goalId) : null
+          };
+
+          const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+          transactions.push(transaction);
+          localStorage.setItem('transactions', JSON.stringify(transactions));
+
+          // Update the dashboard
+          updateDashboard();
+          
+          // Close modal and reset form
+          closeModal('transactionModal');
+          e.target.reset();
+        });
+      }
+    });
+
+    function getNecessityLevel(category) {
+      const necessityMap = {
+        food: 'high',
+        bills: 'high',
+        health: 'high',
+        housing: 'high',
+        education: 'high',
+        transport: 'medium',
+        clothing: 'medium',
+        insurance: 'medium',
+        maintenance: 'medium',
+        entertainment: 'low',
+        hobbies: 'low',
+        dining: 'low',
+        shopping: 'low',
+        travel: 'low',
+        other: 'medium',
+        salary: 'high',
+        savings: 'high'
+      };
+      
+      return necessityMap[category] || 'medium';
+    }
+
+    function updateDashboard() {
+      const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+      
+      // Update balance
+      const totalBalance = document.getElementById('totalBalance');
+      if (totalBalance) {
+        const total = transactions.reduce((sum, t) => sum + t.amount, 0);
+        totalBalance.textContent = total.toFixed(2);
+      }
+
+      // Update charts
+      if (document.getElementById('monthlyChart')) {
+        import('./js/charts.js').then(module => {
+          module.initializeCharts();
+        });
+      }
+
+      // Update recommendations and alerts
+      import('./js/app.js').then(module => {
+        const recommendationsList = document.getElementById('recommendationsList');
+        const alertsList = document.getElementById('alertsList');
+        
+        if (recommendationsList) {
+          module.generateRecommendations();
+        }
+        if (alertsList) {
+          module.updateAlerts();
+        }
+      });
+    }
+
+    // Make closeModal available globally
+    window.closeModal = function(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.style.display = 'none';
+    };
+  </script>
+</body>
+</html>
