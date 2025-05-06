@@ -7,18 +7,15 @@ let currentTransactionType = 'income';
 let isListening = false;
 let recognition = null;
 
-/**
- * Initializes the application by updating the dashboard and setting up voice recognition.
- */
+// Initialize the application
 export function initializeApp() {
+  // Update UI based on stored data
   updateDashboard();
 
-  setupVoiceRecognition();
-}
-
-function setupVoiceRecognition() {
-  if (document.getElementById('voiceInputBtn')) {
-    initializeSpeechRecognition(); // Initialize speech recognition if voice button exists
+  // Initialize speech recognition if voice button exists
+  const voiceBtn = document.getElementById('voiceInputBtn');
+  if (voiceBtn) {
+    initializeSpeechRecognition();
   }
 }
 
@@ -26,17 +23,24 @@ function setupVoiceRecognition() {
 export function updateDashboard() {
   const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
   
-  updateTotalBalance(transactions);
-  setupCharts();
+  // Update total balance
+  const totalBalance = document.getElementById('totalBalance');
+  if (totalBalance) {
+    const total = transactions.reduce((sum, t) => sum + t.amount, 0);
+    totalBalance.textContent = total.toFixed(2);
+  }
+
+  // Initialize charts if they exist
+  const hasCharts = document.getElementById('monthlyChart');
+  if (hasCharts) {
+    initializeCharts();
+  }
+
+  // Update recommendations and alerts
   generateRecommendations();
   updateAlerts();
 }
 
-/**
- * Generates financial recommendations based on the user's transactions and goals.
- * It checks for savings rate, unnecessary expenses, and overdue goals,
- * then updates the recommendations list in the UI.
- */
 export function generateRecommendations() {
   const recommendationsList = document.getElementById('recommendationsList');
   if (!recommendationsList) return;
@@ -45,9 +49,15 @@ export function generateRecommendations() {
   const goals = JSON.parse(localStorage.getItem('goals')) || [];
   
   let recommendations = [];
-  
-  const lastMonthTransactions = getLastMonthTransactions(transactions);
-  
+
+  // Calculate metrics
+  const lastMonthTransactions = transactions.filter(t => {
+    const date = new Date(t.date);
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    return date >= lastMonth;
+  });
+
   const totalIncome = lastMonthTransactions.reduce((sum, t) => t.amount > 0 ? sum + t.amount : sum, 0);
   const totalExpenses = lastMonthTransactions.reduce((sum, t) => t.amount < 0 ? sum + Math.abs(t.amount) : sum, 0);
   const savings = totalIncome - totalExpenses;
@@ -101,10 +111,6 @@ export function generateRecommendations() {
     '<p>¡Buen trabajo! No hay recomendaciones pendientes.</p>';
 }
 
-/**
- * Updates the alerts list in the UI based on the user's transactions and goals.
- * Checks for low balance, upcoming goal deadlines, and unusual spending patterns.
- */
 export function updateAlerts() {
   const alertsList = document.getElementById('alertsList');
   if (!alertsList) return;
@@ -112,6 +118,7 @@ export function updateAlerts() {
   const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
   const goals = JSON.parse(localStorage.getItem('goals')) || [];
   const alerts = [];
+
   // Check for low balance
   const balance = transactions.reduce((sum, t) => sum + t.amount, 0);
   if (balance < 100) {
@@ -122,6 +129,7 @@ export function updateAlerts() {
     });
   }
 
+  // Check for upcoming goal deadlines
   const today = new Date();
   goals.forEach(goal => {
     if (!goal.completed) {
@@ -144,6 +152,7 @@ export function updateAlerts() {
     }
   });
 
+  // Check for unusual spending patterns
   const lastWeekExpenses = transactions.filter(t => {
     const date = new Date(t.date);
     const lastWeek = new Date(today);
@@ -174,9 +183,7 @@ export function updateAlerts() {
     '<p>No hay alertas pendientes.</p>';
 }
 
-/**
- * Initializes speech recognition if the browser supports it.
- */
+// Voice input handling
 function initializeSpeechRecognition() {
   if ('webkitSpeechRecognition' in window) {
     recognition = new webkitSpeechRecognition();
@@ -203,9 +210,6 @@ function initializeSpeechRecognition() {
   }
 }
 
-/**
- * Toggles the voice input functionality on and off.
- */
 export function toggleVoiceInput() {
   if (!isListening) {
     startListening();
@@ -214,9 +218,6 @@ export function toggleVoiceInput() {
   }
 }
 
-/**
- * Starts the speech recognition process.
- */
 function startListening() {
   if (recognition) {
     recognition.start();
@@ -227,9 +228,6 @@ function startListening() {
   }
 }
 
-/**
- * Stops the speech recognition process.
- */
 function stopListening() {
   if (recognition) {
     recognition.stop();
@@ -239,20 +237,15 @@ function stopListening() {
   }
 }
 
-/**
- * Processes the voice command text to perform actions.
- */
 function processVoiceCommand(text) {
   // Voice command processing logic here
   console.log('Processing voice command:', text);
 }
 
-
+// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', initializeApp);
 
-/**
- * Closes a modal by its ID.
- */
+// Make functions available globally
 window.closeModal = function(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) modal.style.display = 'none';
@@ -278,42 +271,4 @@ window.showTransactionModal = function(type) {
   }
 };
 
-/**
- * Updates the total balance displayed on the dashboard.
- *
- * @param {Array} transactions - An array of transaction objects.
- */
-function updateTotalBalance(transactions) {
-  const totalBalance = document.getElementById('totalBalance');
-  if (totalBalance) {
-    const total = transactions.reduce((sum, t) => sum + t.amount, 0);
-    totalBalance.textContent = total.toFixed(2);
-  }
-}
-
-/**
- * Initializes the charts if the necessary chart elements are present.
- */
-function setupCharts() {
-  const hasCharts = document.getElementById('monthlyChart');
-  if (hasCharts) {
-    initializeCharts();
-  }
-}
-
-/**
- * Retrieves transactions from the last month.
- *
- * @param {Array} transactions - An array of transaction objects.
- * @returns {Array} - An array of transactions from the last month.
- */
-function getLastMonthTransactions(transactions) {
-  return transactions.filter(t => {
-    const date = new Date(t.date);
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    return date >= lastMonth;
-  });
-}
-
-
+window.toggleVoiceInput = toggleVoiceInput;
