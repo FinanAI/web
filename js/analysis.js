@@ -1,24 +1,18 @@
-/**
- * Analyzes financial behavior based on transaction data stored in localStorage.
- * It calculates various financial metrics, determines financial trends,
- * generates recommendations, and renders the analysis results to the UI.
- */
 export function analyzeFinancialBehavior() {
   try {
-    // Retrieve transactions and goals from localStorage
     const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
     const goals = JSON.parse(localStorage.getItem('goals')) || [];
-    // Get the HTML element to display the financial analysis
     const analysisDiv = document.getElementById('behaviorAnalysis');
     
-    // Validate analysisDiv and transactions
-    if (!validateAnalysisDiv(analysisDiv) || !validateTransactions(transactions, analysisDiv)) return;
+    if (!analysisDiv) {
+      console.error('Analysis div not found');
+      return;
+    }
 
-    // Initialize the analysis object
-    const analysis = initializeAnalysis();
-
-    // Define categories
-    const categories = defineCategories();
+    if (transactions.length === 0) {
+      analysisDiv.innerHTML = '<p>Comienza a registrar transacciones para ver tu análisis financiero.</p>';
+      return;
+    }
 
     const analysis = {
       totalIncome: 0,
@@ -32,16 +26,35 @@ export function analyzeFinancialBehavior() {
       recommendations: [],
       completedGoals: goals.filter(g => g.completed).length,
       activeGoals: goals.filter(g => !g.completed).length
+    };
 
-    // Initialize category breakdown in analysis
-    initializeCategoryBreakdown(analysis, categories);
+    // Initialize category breakdown
+    const categories = {
+      food: 'Alimentación',
+      bills: 'Servicios',
+      health: 'Salud',
+      housing: 'Vivienda',
+      education: 'Educación',
+      transport: 'Transporte',
+      clothing: 'Ropa',
+      insurance: 'Seguros',
+      maintenance: 'Mantenimiento',
+      entertainment: 'Entretenimiento',
+      hobbies: 'Pasatiempos',
+      dining: 'Restaurantes',
+      shopping: 'Compras',
+      travel: 'Viajes',
+      salary: 'Salario',
+      savings: 'Ahorro',
+      other: 'Otros'
+    };
+
+    Object.keys(categories).forEach(cat => {
+      analysis.categoryBreakdown[cat] = 0;
+    });
 
     // Process transactions and calculate metrics
     processTransactions(transactions, analysis);
-
-
-    // Initialize category breakdown
-    initializeCategoryBreakdown(analysis, categories)
 
     // Calculate savings rate
     analysis.savingsRate = analysis.totalIncome > 0 ? 
@@ -60,103 +73,6 @@ export function analyzeFinancialBehavior() {
     console.error('Error in analyzeFinancialBehavior:', error);
   }
 }
-
-/**
- * Validates if the analysisDiv element exists in the DOM.
- * @param {HTMLElement} analysisDiv - The element where analysis results will be displayed.
- * @returns {boolean} - True if valid, false otherwise.
- */
-function validateAnalysisDiv(analysisDiv) {
-  if (!analysisDiv) {
-    console.error('Analysis div not found');
-    return false;
-  }
-  return true;
-}
-
-/**
- * Validates if there are any transactions to analyze.
- * @param {Array} transactions - The array of transactions.
- * @param {HTMLElement} analysisDiv - The element to display a message if no transactions exist.
- * @returns {boolean} - True if valid, false otherwise.
- */
-function validateTransactions(transactions, analysisDiv) {
-  if (transactions.length === 0) {
-    analysisDiv.innerHTML = '<p>Comienza a registrar transacciones para ver tu análisis financiero.</p>';
-    return false;
-  }
-  return true;
-}
-
-/**
- * Initializes the analysis object with default values.
- * @returns {object} - The initialized analysis object.
- */
-function initializeAnalysis() {
-  return {
-    totalIncome: 0,
-    totalExpenses: 0,
-    necessaryExpenses: 0,
-    unnecessaryExpenses: 0,
-    totalSavings: 0,
-    savingsRate: 0,
-    categoryBreakdown: {},
-    trend: 'stable',
-    recommendations: [],
-    completedGoals: 0,
-    activeGoals: 0
-  };
-}
-
-/**
- * Defines the transaction categories with their names.
- * @returns {object} - An object with transaction categories.
- */
-function defineCategories() {
-  return {
-    food: 'Alimentación',
-    bills: 'Servicios',
-    health: 'Salud',
-    housing: 'Vivienda',
-    education: 'Educación',
-    transport: 'Transporte',
-    clothing: 'Ropa',
-    insurance: 'Seguros',
-    maintenance: 'Mantenimiento',
-    entertainment: 'Entretenimiento',
-    hobbies: 'Pasatiempos',
-    dining: 'Restaurantes',
-    shopping: 'Compras',
-    travel: 'Viajes',
-    salary: 'Salario',
-    savings: 'Ahorro',
-    other: 'Otros'
-  };
-}
-
-/**
- * Initializes the category breakdown section in the analysis object.
- * @param {object} analysis - The analysis object.
- * @param {object} categories - The object containing the categories.
- */
-function initializeCategoryBreakdown(analysis, categories) {
-  Object.keys(categories).forEach(cat => {
-    analysis.categoryBreakdown[cat] = 0;
-  });
-}
-
-/**
- * Processes each transaction to update the analysis object.
- * @param {Array} transactions - The array of transactions.
- * @param {object} analysis - The analysis object to update.
- */
-
-
-
-
-
-
-
 
 function processTransactions(transactions, analysis) {
   transactions.forEach(t => {
