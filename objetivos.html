@@ -186,6 +186,7 @@
         const now = new Date();
         const isOverdue = now > deadline && progress < 100;
         const isCompleted = progress >= 100;
+        const daysLeft = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
 
         if (isCompleted && !goal.completed) {
           goal.completed = true;
@@ -195,23 +196,48 @@
         const card = document.createElement('div');
         card.className = 'goal-card';
         card.innerHTML = `
-          <h3>${goal.name}</h3>
-          <p>Objetivo: $${goal.amount.toFixed(2)}</p>
-          <p>Ahorrado: $${currentAmount.toFixed(2)}</p>
-          <p>Fecha límite: ${new Date(goal.date).toLocaleDateString()}</p>
+          <h3>📎 ${goal.name}</h3>
+          <div class="goal-info">
+            <div class="goal-stat">
+              <small>Objetivo</small>
+              <span>$${goal.amount.toFixed(2)}</span>
+            </div>
+            <div class="goal-stat">
+              <small>Ahorrado</small>
+              <span>$${currentAmount.toFixed(2)}</span>
+            </div>
+          </div>
           <div class="progress-bar">
             <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
           </div>
-          <p>${progress.toFixed(1)}% completado</p>
+          <div style="text-align: center; margin: 0.5rem 0;">
+            <strong>${progress.toFixed(1)}% completado</strong>
+          </div>
+          <div class="goal-info">
+            <div class="goal-stat">
+              <small>Fecha límite</small>
+              <span>${new Date(goal.date).toLocaleDateString()}</span>
+            </div>
+            <div class="goal-stat">
+              <small>Días restantes</small>
+              <span>${daysLeft > 0 ? daysLeft : 'Vencido'}</span>
+            </div>
+          </div>
           ${isCompleted ? 
-            `<p class="completed-tag">¡Objetivo Completado!</p>` :
+            `<div class="completed-tag">
+              <span>🎉 ¡Objetivo Completado!</span>
+             </div>` :
             isOverdue ?
             `<div class="overdue-tag">
-              <p>Meta fuera de plazo</p>
+              <p>⚠️ Meta fuera de plazo</p>
               <p class="motivation">¡Sigue adelante! Cada esfuerzo cuenta.</p>
              </div>
-             <button onclick="contributeToGoal(${goal.id})" class="contribute-btn">Continuar contribuyendo</button>` :
-            `<button onclick="contributeToGoal(${goal.id})" class="contribute-btn">Contribuir</button>`
+             <button onclick="contributeToGoal(${goal.id})" class="contribute-btn">
+               💰 Continuar contribuyendo
+             </button>` :
+            `<button onclick="contributeToGoal(${goal.id})" class="contribute-btn">
+               💰 Contribuir
+             </button>`
           }
         `;
         list.appendChild(card);
